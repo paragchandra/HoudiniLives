@@ -9,3 +9,21 @@ Sample project to understand under what conditions an Android device will load n
 - Android SDK, Build Tools, etc.
 
 ## Building
+
+```
+cd native
+export ANDROID_NDK=<path to your local NDK installation>
+./gradlew recreate-toolchains generate build
+# At this point you can open the 'managed' project in Android Studio and build/debug from the IDE.
+# Or if you prefer:
+cd ../managed
+./gradlew assembleDebug
+```
+
+## Observations
+
+- Using the Samsung Chromebook Pro as an example, the supported ABIs listed at runtime are, in order of preference:
+1. x86
+2. armeabi-v7a
+3. arm
+- Due to [automatic extraction of native code at install time][https://developer.android.com/ndk/guides/abis#aen], any
