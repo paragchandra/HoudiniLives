@@ -1,0 +1,65 @@
+assert System.env['ANDROID_NDK']?.trim(), "Must define ANDROID_NDK env var as location of NDK installation"
+
+ext {
+	workingDir = file("${rootProject.projectDir}/../Build/Android")
+	managedDir = file("${rootProject.projectDir}/../managed")
+	archs = ['armeabi-v7a', 'x86']
+	toolchainArchs = ['armeabi-v7a': 'arm', 'x86': 'x86']
+	configurations = ['Debug']
+	ANDROID_NDK_ROOT = System.env['ANDROID_NDK']
+	androidTargetApi = 23
+}
+
+project.ext.archs.each { String nextArch ->
+    def toolchainDir = "${project.ext.workingDir}/toolchains/${nextArch}"
+
+    task "recreate-toolchain-${nextArch}"(type: Exec, group: 'Init', description: "Generate standalone NDK toolchain for a specific CPU architecture") {
+        doFirst {
+            delete toolchainDir
+        }
+
+        commandLine "${ANDROID_NDK_ROOT}/build/tools/make_standalone_toolchain.py", '--arch', toolchainArchs["${nextArch}"], '--api', androidTargetApi, '--stl', 'libc++', '--install-dir', toolchainDir
+    }
+
+    project.ext.configurations.each { String nextConfig ->
+
+    	def buildSubdir = "${project.ext.workingDir}/${nextArch}/${nextConfig}"
+
+        task "generate-${nextArch}-${nextConfig}"(type: Exec, group: 'Build', description: "Generate Makefiles for ${nextArch}, ${nextConfig}") {
+            workingDir buildSubdir
+
+            doFirst {
+                file(buildSubdir).mkdirs()
+            }            
+
+            commandLine 'cmake', 
+                '-G', 'Unix Makefiles', 
+                "-DCMAKE_BUILD_TYPE=${nextConfig}", 
+                "-DCMAKE_ANDROID_ARCH_ABI=${nextArch}", 
+                "-DCMAKE_TOOLCHAIN_FILE=${projectDir}/android-toolchain.cmake", 
+                "-DCMAKE_ANDROID_STANDALONE_TOOLCHAIN=${toolchainDir}", 
+                "-DCMAKE_SYSTEM_VERSION=${androidTargetApi}",
+                projectDir
+        }
+
+        task "build-${nextArch}-${nextConfig}"(type: Exec, group: 'Build', description: "Build for ${nextArch}, ${nextConfig}") {
+            workingDir buildSubdir
+            commandLine 'cmake', '--build', '.'
+        }
+
+        task "clean-${nextArch}-${nextConfig}"(type: Exec, group: 'Build', description: "Clean ${nextArch}, ${nextConfig}") {
+            workingDir buildSubdir
+            commandLine 'cmake', '--build', '.', '--target', 'clean'
+        }
+    }
+}
+
+['generate', 'build', 'clean'].each { String nextTask ->
+    project.ext.configurations.each { String nextConfig ->
+        task "${nextTask}-${nextConfig}"(dependsOn: archs.collect { "${nextTask}-${it}-${nextConfig}" }, group: 'Build')
+    }
+
+    task "${nextTask}"(dependsOn: project.ext.configurations.collect { "${nextTask}-${it}" }, group: 'Build')
+}
+
+task "recreate-toolchains"(group: 'Init', dependsOn: project.ext.archs.collect { "recreate-toolchain-${it}" })
