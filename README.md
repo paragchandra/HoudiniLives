@@ -16,6 +16,8 @@ Two top-level dirs:
 
 Building the `native` side will compile 32-bit x86 and ARM versions of each library and place them into the canonical locations in the `managed` side so that they can be loaded via `System.loadLibrary`. It will also place renamed copies of all 4 of these files into the `assets` folder, so that they will not be stripped during APK installation.
 
+The `managed` side is equally trivial: just a single button that will load the native libraries with either `System.load` or `System.loadLibrary` and then invoke a single C function from each of those libraries.
+
 
 ## Building
 
@@ -33,4 +35,5 @@ cd ../managed
 
 1. During [automatic extraction of native code at install time](https://developer.android.com/ndk/guides/abis#aen), if there are _any_ x86 .so files present in the APK (under the `libs` dir), then _only_ those libraries are unpacked and available for `System.loadLibrary`. Meaning if you provide nativeLibA as x86 and nativeLibB as ARM, then only A will be loaded successfully via `System.loadLibrary`.
 2. If you _only_ provide ARM libraries, then the installer will unpack these versions and they will be available for `System.loadLibrary`. And at runtime, you will see messages in logcat from Houdini indicating that these ARM binaries are being loaded via the Native Bridge.
-3. 
+3. If you package the .so files as assets in your APK, then the installer will leave them untouched, and you can write them back out to the application sandbox at runtime. You can then _mix and match_ ARM and x86 binaries via `System.load` and an absolute path to the appropriate binary. 
+4. #3 is only observed if you _completely omit_ the x86 .so files from the canonical `libs` directory. If any x86 libraries are found there, then you _cannot_ use the workaround in #3 to `System.load` any ARM images.
