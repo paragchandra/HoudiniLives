@@ -29,6 +29,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.i(TAG, "MainActivity - onCreate: Invoked");
+        // Enumerate supported ABIs
+        for (String s : Build.SUPPORTED_ABIS) {
+            Log.i(TAG, "MainActivity - onCreate: Claims to support: " + s);
+        }
     }
 
     private void copyAssetFile(String assetFilePath, String destinationFilePath) throws IOException
@@ -44,13 +49,7 @@ public class MainActivity extends AppCompatActivity {
         out.close();
     }
 
-    public void onButtonClicked(View v) {
-        Log.i(TAG, "MainActivity - onButtonClicked: Invoked");
-        // Enumerate supported ABIs
-        for (String s : Build.SUPPORTED_ABIS) {
-            Log.i(TAG, "MainActivity - onButtonClicked: Claims to support: " + s);
-        }
-
+    private void copyLibsFromAssets() {
         // Take all the .so files we packaged up as assets and write them out to the app's private
         // sandbox
         try {
@@ -65,14 +64,43 @@ public class MainActivity extends AppCompatActivity {
         catch (IOException e) {
             e.printStackTrace();
         }
+    }
 
-        // Load the native libraries in different ways
-        System.loadLibrary("nativeliba");
-        System.loadLibrary("nativelibb");
-//        System.load(getApplicationContext().getFilesDir() + "/libnativeliba_x86.so");
-//        System.load(getApplicationContext().getFilesDir() + "/libnativelibb_armeabi-v7a.so");
+    public void onLoadLibraryButtonClicked(View v) {
+        try {
+            System.loadLibrary("nativeliba");
+            nativeLibA.sayHello();
+        }
+        catch (Throwable e) {
+            e.printStackTrace();
+        }
 
-        nativeLibA.sayHello();
-        nativeLibB.sayHola();
+        try {
+            System.loadLibrary("nativelibb");
+            nativeLibB.sayHola();
+        }
+        catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void onLoadButtonClicked(View v) {
+        copyLibsFromAssets();
+
+        try {
+            System.load(getApplicationContext().getFilesDir() + "/libnativeliba_x86.so");
+            nativeLibA.sayHello();
+        }
+        catch (Throwable e) {
+            e.printStackTrace();
+        }
+
+        try {
+            System.load(getApplicationContext().getFilesDir() + "/libnativelibb_armeabi-v7a.so");
+            nativeLibB.sayHola();
+        }
+        catch (Throwable e) {
+            e.printStackTrace();
+        }
     }
 }

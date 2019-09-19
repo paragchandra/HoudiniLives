@@ -16,7 +16,7 @@ Two top-level dirs:
 
 Building the `native` side will compile 32-bit x86 and ARM versions of each library and place them into the canonical locations in the `managed` side so that they can be loaded via `System.loadLibrary`. It will also place renamed copies of all 4 of these files into the `assets` folder, so that they will not be stripped during APK installation.
 
-The `managed` side is equally trivial: just a single button that will load the native libraries with either `System.load` or `System.loadLibrary` and then invoke a single C function from each of those libraries.
+The `managed` side is equally trivial: one button that will load the native libraries with either `System.load`, and a second button that will load them via `System.loadLibrary` and then invoke a single C function from each of those libraries. Note that _you must restart the app_ in between trials, in order to cause the native libraries to be fully unloaded.
 
 
 ## Building
